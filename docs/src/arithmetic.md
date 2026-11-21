@@ -1,7 +1,8 @@
 # Arithmetic model
 
-The model follows hardware fixed-point types such as `ap_fixed` and `ac_fixed`, and MATLAB's `fimath` with full
-precision products and `KeepLSB` sums.
+Products are exact: the word and fraction lengths of the operands add. Sums keep the word and fraction lengths of
+their operands, so no bits are rounded away and a carry out of the top bit goes through the overflow mode. This is
+the model of hardware fixed-point types such as `ap_fixed` and `ac_fixed`, except that their sums grow by one bit.
 
 | Operation | Result |
 |:--|:--|
