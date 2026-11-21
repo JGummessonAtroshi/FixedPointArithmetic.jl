@@ -1,13 +1,20 @@
 # FixedPointArithmetic.jl
 
+[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://jacobga98.github.io/FixedPointArithmetic.jl/stable/)
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://jacobga98.github.io/FixedPointArithmetic.jl/dev/)
 [![CI](https://github.com/jacobga98/FixedPointArithmetic.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/jacobga98/FixedPointArithmetic.jl/actions/workflows/CI.yml?query=branch%3Amain)
+[![Coverage](https://codecov.io/gh/jacobga98/FixedPointArithmetic.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/jacobga98/FixedPointArithmetic.jl)
 
 Binary fixed-point numbers for simulating fixed-point signal processing in Julia: receivers, decoders, filters. A
 format has a word length, a fraction length, a rounding mode and an overflow mode. Algorithms written generically
 for floating point run unchanged on it, and arrays of a fixed-point type quantize whatever is stored into them.
 
-**Status:** first draft, not registered. The API will change.
+```julia
+using Pkg
+Pkg.add("FixedPointArithmetic")
+```
+
+A first example:
 
 ```julia
 using FixedPointArithmetic
@@ -20,3 +27,8 @@ y = similar(a); y .= p       # stored back as Q15: rounded once
 
 See the [documentation](https://jacobga98.github.io/FixedPointArithmetic.jl/dev/) for the arithmetic model, performance
 notes and the API reference.
+
+## Use of AI
+
+Substantial parts of the code, tests and documentation were written with Claude Code. All of it was reviewed by the
+author.

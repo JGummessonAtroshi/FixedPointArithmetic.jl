@@ -1,5 +1,8 @@
 # FixedPointArithmetic.jl
 
+[![Source](https://img.shields.io/badge/source-GitHub-blue.svg)](https://github.com/jacobga98/FixedPointArithmetic.jl)
+[![CI](https://github.com/jacobga98/FixedPointArithmetic.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/jacobga98/FixedPointArithmetic.jl/actions/workflows/CI.yml?query=branch%3Amain)
+
 Binary fixed-point numbers for simulating fixed-point signal processing in Julia. A
 format has a word length, a fraction length, a rounding mode and an overflow mode. Algorithms written generically
 for floating point run unchanged on it, and arrays of a fixed-point type quantize whatever is stored into them.
