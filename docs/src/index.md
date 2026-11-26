@@ -22,6 +22,23 @@ z = Complex(a[1], b[1]) * Complex(b[2], a[2])          # complex product: exact,
 Complex{Q15}(z)                                        # one rounding per component
 ```
 
+## Complex samples
+
+`Complex{X}` works with Base's complex arithmetic: a complex product is exact, with 32-bit partial sums for 16-bit
+parts, and rounds once when it is converted. Raw I/Q integers go in with `fromraw` and come out with `rawvalue`:
+
+```julia
+X   = fixed(16, 0; overflow=Wrap)                      # int16 I/Q as read from a buffer
+Acc = fixed(32, 0; overflow=Wrap)                      # 32-bit accumulator
+
+h1 = fromraw.(Complex{X}, rand(Int16, 240), rand(Int16, 240))
+h2 = fromraw.(Complex{X}, rand(Int16, 240), rand(Int16, 240))
+
+# (conj(x) * y) >> 8 per element, summed in 32 bits
+acc = sum(k -> Complex{Acc}(withfraction(conj(h1[k]) * h2[k], 8)), eachindex(h1, h2))
+ComplexF64(acc)                                        # or float(acc); rawvalue(acc) for the integers
+```
+
 See [Arithmetic model](@ref) for what each operation returns, and the [API reference](@ref) for the functions.
 
 ## Performance and GPUs

@@ -130,6 +130,75 @@ Fx{16, 15, RoundDown, Saturate, Int16}(0.5)
 """
 fromraw(::Type{X}, i::Integer) where {X<:Fx} = _fromraw(X, _overflow(X, _signed(i)))
 
+"""
+    rawvalue(z::Complex{<:Fx})
+
+The stored integers of the real and imaginary parts of `z`, as a complex integer.
+"""
+rawvalue(z::Complex{<:Fx}) = Complex(rawvalue(real(z)), rawvalue(imag(z)))
+
+"""
+    fromraw(::Type{Complex{X}}, re::Integer, im::Integer) where {X<:Fx}
+    fromraw(::Type{Complex{X}}, z::Complex{<:Integer}) where {X<:Fx}
+
+The complex value of fixed-point type `X` with stored integers `re` and `im`, for example to read interleaved I/Q
+samples. Each part is brought into the word length with the overflow mode of `X`.
+
+# Examples
+```jldoctest
+julia> fromraw(Complex{fixed(16, 15)}, 16384, -8192)
+Complex{Fx{16, 15, RoundDown, Saturate, Int16}}(0.5 - 0.25im)
+```
+"""
+fromraw(::Type{Complex{X}}, re::Integer, im::Integer) where {X<:Fx} = Complex(fromraw(X, re), fromraw(X, im))
+fromraw(::Type{Complex{X}}, z::Complex{<:Integer}) where {X<:Fx} = fromraw(Complex{X}, real(z), imag(z))
+
+"""
+    withfraction(x::Fx, F::Integer)
+    withfraction(z::Complex{<:Fx}, F::Integer)
+
+The value with the same stored integer as `x` but `F` fraction bits, keeping the word length and the modes of `x`:
+`x · 2^(fractionlength(x) - F)`, exactly. This moves the binary point without touching any bit, so nothing is
+rounded and nothing overflows.
+
+Followed by a conversion, it is a right shift with a chosen rounding mode, as integer code writes it: compute in
+integers, move the binary point by the shift, and convert to the target format.
+
+# Examples
+```jldoctest
+julia> I16 = fixed(16, 0; overflow=Wrap); I32 = fixed(32, 0; overflow=Wrap);
+
+julia> p = I16(1000) * I16(-7)              # exact product, Fx{32, 0}
+Fx{32, 0, RoundDown, Wrap, Int32}(-7000.0)
+
+julia> I32(withfraction(p, 8))               # (x * y) >> 8, as srai does
+Fx{32, 0, RoundDown, Wrap, Int32}(-28.0)
+
+julia> fixed(32, 0; rounding=RoundNearestTiesUp)(withfraction(p, 8))   # ((x * y) + 128) >> 8
+Fx{32, 0, RoundNearestTiesUp, Saturate, Int32}(-27.0)
+```
+"""
+function withfraction(x::Fx{W,F0,R,O,T}, F::Integer) where {W,F0,R,O,T}
+    0 <= F <= W || throw(ArgumentError("the fraction length must be between 0 and the word length $W, got $F"))
+    return _fromraw(Fx{W,Int(F),R,O,T}, x.i)
+end
+withfraction(z::Complex{<:Fx}, F::Integer) = Complex(withfraction(real(z), F), withfraction(imag(z), F))
+
+"""
+    reinterpret(::Type{X}, x::Fx) where {X<:Fx}
+    reinterpret(::Type{X}, i::Integer) where {X<:Fx}
+
+The value of `X` with the stored integer of `x`, or with stored integer `i`: the same as [`fromraw`](@ref). An
+integer outside the word length of `X` is brought into it with the overflow mode of `X`, so the result is always a
+valid value of `X`; Base's bitwise `reinterpret` would keep bits beyond the word length. To move the binary point
+while keeping the format, [`withfraction`](@ref) is shorter.
+
+Reinterpreting an array, as `reinterpret(X, v::Vector{Int16})`, stays Base's bitwise view: it is valid when the
+word length of `X` is the width of its storage type, such as `fixed(16, F)` over `Int16`.
+"""
+Base.reinterpret(::Type{X}, x::Fx) where {X<:Fx} = fromraw(X, x.i)
+Base.reinterpret(::Type{X}, i::Integer) where {X<:Fx} = fromraw(X, i)
+
 _signed(i::Signed) = i
 _signed(i::Unsigned) = _signed_unsigned(i)
 _signed(i::Bool) = Int8(i)
