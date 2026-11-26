@@ -235,6 +235,42 @@ const RNG = Xoshiro(20261101)
         end
     end
 
+    @testset "raw values" begin
+        for R in ROUNDINGS, O in OVERFLOWS
+            X = fixed(6, 3; rounding=R, overflow=O)
+            xs = allvalues(X)
+            for F in 0:6
+                Y = fixed(6, F; rounding=R, overflow=O)
+                @test all(x -> typeof(withfraction(x, F)) === Y && rawvalue(withfraction(x, F)) == rawvalue(x), xs)
+                @test isempty(failures(x -> exact(withfraction(x, F)) == scale2(exact(x), 3 - F), xs))
+            end
+            @test_throws ArgumentError withfraction(X(1), 7)
+            @test_throws ArgumentError withfraction(X(1), -1)
+            # A right shift by s with the rounding of the target: compute in integers, move the point, convert
+            I = fixed(8, 0; rounding=R, overflow=O)
+            A = fixed(16, 0; rounding=R, overflow=O)
+            pairs = vec(collect(Iterators.product(allvalues(I), allvalues(I))))
+            for s in (1, 3, 7)
+                @test isempty(failures(((a, b),) -> rawvalue(A(withfraction(a * b, s))) ==
+                                                    refraw(A, exact(a) * exact(b) / big(2)^s), pairs))
+            end
+            # reinterpret and fromraw bring any integer into the word length
+            Z = fixed(6, 2; rounding=R, overflow=O)
+            @test isempty(failures(i -> rawvalue(reinterpret(Z, i)) == refoverflow(Z, i), -200:200))
+            @test isempty(failures(i -> reinterpret(Z, i) === fromraw(Z, i), -200:200))
+            @test isempty(failures(i -> reinterpret(Z, fromraw(fixed(16, 0; overflow=O), i)) === fromraw(Z, i), -200:200))
+            # Complex raw values
+            C = Complex{fixed(16, 15; rounding=R, overflow=O)}
+            zs = rand(RNG, C, 100)
+            @test all(z -> fromraw(C, rawvalue(z)) === z, zs)
+            @test all(z -> fromraw(C, real(rawvalue(z)), imag(rawvalue(z))) === z, zs)
+            @test all(z -> rawvalue(withfraction(z, 0)) == rawvalue(z), zs)
+            @test rawvalue(fromraw(C, 40000, -40000)) == refoverflow(real(C), 40000) + refoverflow(real(C), -40000) * im
+        end
+        @test reinterpret(Int16, fixed(16, 15)(0.5)) == 16384
+        @test reinterpret(fixed(16, 15), Int16[16384, -8192]) == fixed(16, 15).([0.5, -0.25])
+    end
+
     @testset "constants" begin
         Q15 = fixed(16, 15)
         @test iszero(zero(Q15))
